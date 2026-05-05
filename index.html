@@ -13,6 +13,17 @@
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
+
+<style>
+.scroll-video { height: 100vh; position: relative; overflow: hidden; background: #0a0a0a; }
+.scroll-video__container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+.scroll-video__canvas { width: 100%; height: 100%; object-fit: cover; }
+.scroll-video__overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; z-index: 2; background: rgba(0,0,0,0.25); pointer-events: none; }
+.scroll-video__tag { display: inline-block; background: #d4ed31; color: #0a0a0a; padding: 8px 20px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; animation: scroll-pulse 2s ease-in-out infinite; }
+.scroll-video__title { font-size: clamp(2rem, 6vw, 4.5rem); color: #fff; line-height: 1; font-family: var(--font-display, serif); margin: 0; }
+.scroll-video__title em { color: #d4ed31; font-style: italic; }
+@keyframes scroll-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+</style>
 </head>
 <body>
 
@@ -156,6 +167,17 @@
     </div>
   </section>
 
+  <!-- ======================== SCROLL-STOP VIDEO ======================== -->
+  <section class="scroll-video">
+    <div class="scroll-video__container">
+      <canvas class="scroll-video__canvas" id="scrollCanvas"></canvas>
+      <div class="scroll-video__overlay" id="scrollOverlay">
+        <span class="scroll-video__tag">Scroll om te zien</span>
+        <h2 class="scroll-video__title">Van gesloten naar <em>open</em></h2>
+      </div>
+    </div>
+  </section>
+
   <!-- ======================== FAQ ======================== -->
   <section class="faq" id="faq">
     <div class="container">
@@ -271,6 +293,64 @@
         }
       });
     });
+  </script>
+
+  <!-- GSAP ScrollTrigger for scroll-video -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+    (function() {
+      const canvas = document.getElementById('scrollCanvas');
+      const overlay = document.getElementById('scrollOverlay');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const frameCount = 121;
+      const frames = [];
+      let loadedCount = 0;
+      for (let i = 0; i < frameCount; i++) {
+        const img = new Image();
+        img.src = 'images/frames/frame-' + String(i).padStart(3, '0') + '.jpg';
+        img.onload = function() {
+          loadedCount++;
+          if (loadedCount === 1) {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+          }
+        };
+        frames.push(img);
+      }
+      gsap.to({ frame: 0 }, {
+        frame: frameCount - 1,
+        snap: 'frame',
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.scroll-video',
+          start: 'top top',
+          end: '+=300%',
+          pin: true,
+          scrub: 0.3,
+          anticipatePin: 1
+        },
+        onUpdate: function() {
+          var idx = Math.round(this.targets()[0].frame);
+          if (frames[idx] && frames[idx].complete) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(frames[idx], 0, 0);
+          }
+        }
+      });
+      gsap.to(overlay, {
+        opacity: 0,
+        scrollTrigger: {
+          trigger: '.scroll-video',
+          start: 'top top',
+          end: '+=30%',
+          scrub: true
+        }
+      });
+    })();
   </script>
 </body>
 </html>
